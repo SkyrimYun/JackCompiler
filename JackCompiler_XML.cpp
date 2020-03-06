@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 #include <string.h>
-#include <experimental/filesystem>
+#include <io.h>
 
 #define KEYWORD 0
 #define SYMBOL 1
@@ -37,16 +37,16 @@
 
 //While not invalid keep advancing
 
-namespace fs = std::experimental::filesystem;
-
 using namespace std;
 
-struct symbolInformation{
+struct symbolInformation
+{
     string type;
     int kind;
     int number;
 };
 
+//去空格
 string trim(string input)
 {
     int l = 0;
@@ -96,7 +96,7 @@ string removeComments(string input)
     }
 
     // cout<<input<<endl;
-    cout<<output<<endl;
+    cout << output << endl;
 
     output += input[input.size() - 1];
 
@@ -108,7 +108,7 @@ class FileWriter
 
     ofstream outstream;
 
-  public:
+public:
     FileWriter()
     {
     }
@@ -134,7 +134,7 @@ class JackTokenizer
     int index = 0;
     int prevIndex = 0;
 
-  public:
+public:
     JackTokenizer(const char *path)
     {
         readFileIntoBuffer(path);
@@ -212,24 +212,26 @@ class JackTokenizer
 
     void advanceTillValid()
     {
-        if(nextToken==""){
+        if (nextToken == "")
+        {
             prevIndex = index;
-        
         }
-        else{
-            prevIndex = index-1;
+        else
+        {
+            prevIndex = index - 1;
         }
 
-    prevToken = currentToken;        
-        cout<<prevIndex<<" ";
+        prevToken = currentToken;
+        cout << prevIndex << " ";
         do
         {
             advance();
-        } while (hasMoreTokens()&&tokenType() == INVALID);
+        } while (hasMoreTokens() && tokenType() == INVALID);
 
-        cout<<index<<endl;
+        cout << index << endl;
     }
-    bool isSymbol(string token)
+
+        bool isSymbol(string token)
     {
         if (token.size() == 1)
         {
@@ -630,7 +632,6 @@ class JackTokenizer
         }
     }
 
-
     void test(const char *path)
     {
         FileWriter writer(path);
@@ -710,7 +711,7 @@ class CompilationEngine
     const char *outputPath;
     FileWriter writer;
 
-  public:
+public:
     CompilationEngine(JackTokenizer tokenizer, const char *outputPath)
     {
         this->tokenizer = tokenizer;
@@ -1015,7 +1016,7 @@ class CompilationEngine
         {
             tokenizer.advanceTillValid();
 
-            if (tokenizer.tokenType()==SYMBOL)
+            if (tokenizer.tokenType() == SYMBOL)
             {
                 switch (tokenizer.symbol())
                 {
@@ -1062,7 +1063,8 @@ class CompilationEngine
             compileTerm();
         }
 
-        else if(tokenizer.tokenType()==SYMBOL&&tokenizer.symbol()=='('){
+        else if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '(')
+        {
             compileExpression();
             writer.writeLine(tokenizer.getXML());
         }
@@ -1081,7 +1083,7 @@ class CompilationEngine
         do
         {
             tokenizer.advanceTillValid();
-             if(tokenizer.tokenType()!=SYMBOL||tokenizer.symbol()=='(')
+            if (tokenizer.tokenType() != SYMBOL || tokenizer.symbol() == '(')
             {
                 tokenizer.rollBack();
                 compileExpression();
@@ -1098,7 +1100,6 @@ class CompilationEngine
                 }
             }
 
-           
         } while (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ',');
 
         writer.writeLine("</expressionList>");
@@ -1199,40 +1200,32 @@ class CompilationEngine
     }
 };
 
-class SymbolTable{
+class SymbolTable
+{
 
     map<string, symbolInformation> classScope;
     map<string, symbolInformation> subroutineScope;
 
-
-    void startSubroutine(){
+    void startSubroutine()
+    {
         subroutineScope.erase(subroutineScope.begin(), subroutineScope.end());
-
     }
 
     void define(string name, string type, int kind)
     {
-
     }
 
     int varCount(int kind)
     {
-
     }
 
     string typeOf(string name)
     {
-
     }
 
     string indexOf(string name)
     {
-
     }
-
-
-
-
 };
 /*For each construct, we have a particular way of wiritng it
 For instance, a function consists of the function keyword
@@ -1240,7 +1233,7 @@ For instance, a function consists of the function keyword
 
 class JackAnalyzer
 {
-  public:
+public:
     const char *filepath;
     // JackTokenizer tokenizer;
     JackAnalyzer(const char *path)
@@ -1261,35 +1254,70 @@ class JackAnalyzer
     }
 };
 
+bool checkjack(string &s)
+{
+    string ss;
+
+    if (s.size() < 4)
+        return false;
+
+    for (int i = s.size() - 4; i < s.size(); i++)
+    {
+        ss.push_back(s[i]);
+    }
+    cout << ss << endl;
+    if (ss == ".jack")
+        return true;
+    else
+        return false;
+}
+
+void getAllFiles(string path, vector<string> &files)
+{
+
+    if (checkjack(path))
+    {
+        files.push_back(path);
+    }
+    else
+    {
+        long hFile = 0;
+
+        struct _finddata_t fileinfo;
+        string p;
+
+        if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1)
+        {
+            do
+            {
+                string check;
+                check.append(fileinfo.name);
+                if (checkjack(check))
+                {
+                    files.push_back(p.assign(path).append("/").append(fileinfo.name));
+                }
+            } while (_findnext(hFile, &fileinfo) == 0);
+            _findclose(hFile);
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 
 {
+    cout << "nmsl\r";
     //Interpret as colleciton
     //Each time you start traversing a file, inform codewriter class
     //Can function be called across files: Yes, functions are global in scope.
     char *inputPath = argv[1];
     char *outputPath = argv[2];
 
-    int inputPathLength = strlen(inputPath);
-    string extension = fs::path(inputPath).extension();
     vector<string> files;
 
-    if (extension != ".jack")
-    {
-        for (auto &i : fs::directory_iterator(inputPath))
-        {
-            string path = i.path();
-            if (i.path().extension() == ".jack")
-            {
-                files.push_back(path);
-            }
-        }
-    }
+    getAllFiles(inputPath, files);
 
-    else
-    {
-        files.push_back(inputPath);
-    }
+    if (files.size() == 0)
+        throw runtime_error("no vaild input file!");
 
     for (int i = 0; i < files.size(); i++)
     {
