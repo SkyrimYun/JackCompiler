@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <algorithm>
 #include <map>
 #include <vector>
@@ -12,6 +13,10 @@ class JackTokenizer
 {
 private:
     ifstream ist;
+    string fileBuffer;
+
+    string removeLineBlank(string &);
+    string removeComments(string &);
 
 public:
     JackTokenizer(string &);
@@ -47,11 +52,64 @@ public:
     string stringVal();
 };
 
+string JackTokenizer::removeLineBlank(string &line)
+{
+    string re_line;
+    stringstream lst(line);
+    while (!lst.eof())
+    {
+        string s;
+        lst >> s;
+        re_line += (s + " ");
+    }
+    return re_line;
+}
+
+string JackTokenizer::removeComments(string &file)
+{
+    string s;
+    for (int i = 0; i < file.size(); i++)
+    {
+        if (file[i] == '/' && file[i + 1] == '/')
+        {
+            while (file[i] != '\n')
+            {
+                i++;
+            }
+        }
+        else if (file[i] == '/' && file[i + 1] == '*')
+        {
+            while (!(file[i] == '/' && file[i - 1] == '*'))
+            {
+                i++;
+            }
+        }
+        else
+        {
+            s += file[i];
+        }
+    }
+    return s;
+}
+
 JackTokenizer::JackTokenizer(string &path)
 {
     ist = ifstream(path.c_str());
+
     if (!ist)
         throw runtime_error("cannot open input file");
+
+    while (!ist.eof())
+    {
+        string line;
+        getline(ist, line);
+        line = removeLineBlank(line);
+        line += '\n';
+        fileBuffer += line;
+    }
+
+    fileBuffer = removeComments(fileBuffer);
+    cout << fileBuffer << endl;
 }
 
 class CompilationEngine
@@ -122,13 +180,9 @@ public:
 
     void beginAnalyzing()
     {
-
         JackTokenizer tokenizer(filepath);
-        string outputPath = filepath;
-        outputPath = outputPath.substr(0, outputPath.size() - 4) + "TT.xml";
+        string outputPath = filepath.substr(0, filepath.size() - 4) + ".xml";
         CompilationEngine engine(tokenizer, outputPath);
-
-        // tokenizer.test(outputPath.c_str());
     }
 };
 
@@ -193,6 +247,7 @@ int main()
 
     for (int i = 0; i < files.size(); i++)
     {
+        cout << files[i] << endl;
         JackAnalyzer analyzer(files[i]);
         analyzer.beginAnalyzing();
     }

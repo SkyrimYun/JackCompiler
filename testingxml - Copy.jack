@@ -1,8 +1,0 @@
-class MyClass{
-
-    field int testype;
-   function void run(){
-
-        return 12;
-   } 
-}
