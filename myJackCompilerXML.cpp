@@ -126,6 +126,11 @@ public:
     //returns the string value of the current token, without the two enclosing double quotes.
     //should be called only if tokenType is STRING_CONST
     string stringVal();
+
+    string tokenVal()
+    {
+        return curToken.val;
+    }
 };
 
 string JackTokenizer::removeLineBlank(string &line)
@@ -159,6 +164,7 @@ string JackTokenizer::removeComments(string &file)
             {
                 i++;
             }
+            i += 2; //jump over '\n'
         }
         else
         {
@@ -212,13 +218,16 @@ JackTokenizer::JackTokenizer(string &path)
         string line;
         getline(ist, line);
         line = removeLineBlank(line);
-        line += '\n';
-        fileBuffer += line;
+        if (line[0] != ' ')
+        {
+            line += '\n';
+            fileBuffer += line;
+        }
     }
 
     fileBuffer = removeComments(fileBuffer);
+    //cout << fileBuffer.size() << endl;
     //cout << fileBuffer << endl;
-    advance();
 }
 
 bool JackTokenizer::hasMoreTokens()
@@ -228,7 +237,7 @@ bool JackTokenizer::hasMoreTokens()
 
 void JackTokenizer::advance()
 {
-    if (hasMoreTokens)
+    if (hasMoreTokens())
     {
         char c = getNextCharacter();
         string curValue;
@@ -279,6 +288,8 @@ void JackTokenizer::advance()
         }
         else if (isspace(c))
         {
+            if (index == fileBuffer.size())
+                curToken.set(curValue, NULL);
             if (hasMoreTokens())
                 advance();
         }
@@ -340,7 +351,10 @@ class CompilationEngine
 {
 private:
     JackTokenizer tokenizer;
-    string outputPath;
+    ofstream ost;
+
+    void writeLine(string, int);
+    void writeXML(int);
 
 public:
     CompilationEngine(JackTokenizer &, string &);
@@ -394,11 +408,204 @@ public:
     void CompileExpressionList();
 };
 
+void CompilationEngine::writeLine(string s, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
+        s = '\t' + s;
+    }
+    ost << s << endl;
+}
+
+void CompilationEngine::writeXML(int n)
+{
+    switch (tokenizer.tokenType())
+    {
+    case KEYWORD:
+    {
+        writeLine("<keyword> " + tokenizer.tokenVal() + " </keyword>", n);
+        break;
+    }
+    case IDENTIFIER:
+    {
+        writeLine("<identifier> " + tokenizer.identifier() + " </identifier>", n);
+        break;
+    }
+    case SYMBOL:
+    {
+        if (tokenizer.symbol() == '"')
+        {
+            writeLine("&quot;", n);
+        }
+        else if (tokenizer.symbol() == '<')
+        {
+            writeLine("&lt;", n);
+        }
+        else if (tokenizer.symbol() == '>')
+        {
+            writeLine("&gt;", n);
+        }
+        else if (tokenizer.symbol() == '&')
+        {
+            writeLine("&amp;", n);
+        }
+        else
+        {
+            writeLine("<symbol> " + tokenizer.tokenVal() + " </symbol>", n);
+        }
+        break;
+    }
+    case INT_CONST:
+    {
+        writeLine("<integerConstant> " + tokenizer.tokenVal() + " </integerConstant>", n);
+        break;
+    }
+    case STRING_CONST:
+    {
+        writeLine("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>", n);
+        break;
+    }
+    }
+}
+
 CompilationEngine::CompilationEngine(JackTokenizer &jt, string &s)
 {
-    this->tokenizer = tokenizer;
-    this->outputPath = outputPath;
+    tokenizer = jt;
+    cout << s << endl;
+    ost = ofstream(s);
     CompileClass();
+}
+
+void CompilationEngine::CompileClass()
+{
+    writeLine("<class>", 0);
+    while (tokenizer.hasMoreTokens())
+    {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == KEYWORD)
+        {
+            int keyword = tokenizer.keyWord();
+            if (keyword == FUNCTION || keyword == CONSTRUCTOR || keyword == METHOD)
+            {
+                CompileSubroutineDec();
+            }
+            else if (keyword == STATIC || keyword == FIELD)
+            {
+                CompileClassVarDec();
+            }
+            else
+            {
+                writeXML(1);
+            }
+        }
+        else
+        {
+            writeXML(1);
+            cout << tokenizer.tokenVal() << endl;
+        }
+    }
+    writeLine("</class>", 0);
+}
+
+void CompilationEngine::CompileClassVarDec()
+{
+    writeLine("<classVarDec>", 1);
+    writeXML(2);
+    while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ';'))
+    {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == KEYWORD || tokenizer.tokenType() == SYMBOL || tokenizer.tokenType() == IDENTIFIER)
+        {
+            writeXML(2);
+        }
+    }
+    writeLine("</classVarDec>", 1);
+}
+
+void CompilationEngine::CompileSubroutineDec()
+{
+    writeLine("<subroutineDec>", 1);
+    writeXML(2);
+    while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '('))
+    {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == KEYWORD || tokenizer.tokenType() == SYMBOL || tokenizer.tokenType() == IDENTIFIER)
+        {
+            writeXML(2);
+        }
+    }
+
+    if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '(')
+    {
+        CompileParameterList();
+    }
+
+    tokenizer.advance();
+
+    if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '{')
+    {
+        CompileSubroutineBody();
+    }
+    writeLine("</subroutineDec>", 1);
+}
+
+void CompilationEngine::CompileParameterList()
+{
+    writeLine("<parameterList>", 2);
+    while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ')'))
+    {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == KEYWORD || tokenizer.tokenType() == IDENTIFIER)
+        {
+            writeXML(3);
+        }
+
+        if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() != ')')
+        {
+            writeXML(3);
+        }
+    }
+    writeLine("</parameterList>", 2);
+    writeXML(2);
+}
+
+void CompilationEngine::CompileSubroutineBody()
+{
+    writeLine("<subroutineBody>", 2);
+    writeXML(3);
+    while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '}'))
+    {
+        tokenizer.advance();
+
+        if (tokenizer.tokenType() == KEYWORD)
+        {
+            if (tokenizer.keyWord() == VAR)
+            {
+                CompileVarDec();
+            }
+            else
+            {
+                //compileStatements();
+            }
+        }
+    }
+    writeXML(3);
+    writeLine("</subroutineBody>", 2);
+}
+
+void CompilationEngine::CompileVarDec()
+{
+    writeLine("<varDec>", 3);
+    writeXML(4);
+    while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ';'))
+    {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == KEYWORD || tokenizer.tokenType() == SYMBOL || tokenizer.tokenType() == IDENTIFIER)
+        {
+            writeXML(4);
+        }
+    }
+    writeLine("</varDec>", 3);
 }
 
 class JackAnalyzer
@@ -412,7 +619,7 @@ public:
     void beginAnalyzing()
     {
         JackTokenizer tokenizer(filepath);
-        string outputPath = filepath.substr(0, filepath.size() - 4) + ".xml";
+        string outputPath = filepath.substr(0, filepath.size() - 4) + "xml";
         CompilationEngine engine(tokenizer, outputPath);
     }
 };
@@ -428,14 +635,13 @@ bool checkjack(string &s)
     {
         ss.push_back(s[i]);
     }
-    //cout << ss << endl;
     if (ss == ".jack")
         return true;
     else
         return false;
 }
 
-void getAllFiles(string &path, vector<string> &files)
+void getAllFiles(string path, vector<string> &files)
 {
 
     if (checkjack(path))
@@ -478,7 +684,6 @@ int main()
 
     for (int i = 0; i < files.size(); i++)
     {
-        cout << files[i] << endl;
         JackAnalyzer analyzer(files[i]);
         analyzer.beginAnalyzing();
     }

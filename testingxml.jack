@@ -1,11 +1,7 @@
-//nmsl
-/*nmfl
-*/
-                         class MyClass{
-
-    field int testype;
-   function void              run(){
-
-                       return 12;
+class MyClass{
+   field int testype;
+   function void run(int j, char c){
+      var int wtf;
+      return 12;
    } 
 }
