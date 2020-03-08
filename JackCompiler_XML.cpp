@@ -231,7 +231,7 @@ public:
         cout << index << endl;
     }
 
-        bool isSymbol(string token)
+    bool isSymbol(string token)
     {
         if (token.size() == 1)
         {
@@ -1009,7 +1009,7 @@ public:
     {
 
         writer.writeLine("<term>");
-        // tokenizer.advanceTillValid();
+        // tokeni  zer.advanceTillValid();
 
         writer.writeLine(tokenizer.getXML());
         if (tokenizer.tokenType() == IDENTIFIER)

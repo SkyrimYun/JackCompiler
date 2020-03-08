@@ -15,7 +15,7 @@
 		<symbol> ( </symbol>
 		<parameterList>
 			<keyword> int </keyword>
-			<identifier> j </identifier>
+			<identifier> j </id3entifier>
 			<symbol> , </symbol>
 			<keyword> char </keyword>
 			<identifier> c </identifier>
