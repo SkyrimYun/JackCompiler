@@ -1,9 +1,0 @@
-class MyClass{
-   field int size;
-   static char ch;
-   
-   constructor MyClass new(int j, char c){
-      let size=j+13;
-      let ch=c-7;
-   } 
-}
