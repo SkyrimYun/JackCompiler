@@ -1,36 +1,70 @@
 <class>
-	<keyword> class </keyword>
-	<identifier> MyClass </identifier>
-	<symbol> { </symbol>
-	<classVarDec>
-		<keyword> field </keyword>
-		<keyword> int </keyword>
-		<identifier> testype </identifier>
-		<symbol> ; </symbol>
-	</classVarDec>
-	<subroutineDec>
-		<keyword> function </keyword>
-		<keyword> void </keyword>
-		<identifier> run </identifier>
-		<symbol> ( </symbol>
-		<parameterList>
-			<keyword> int </keyword>
-			<identifier> j </id3entifier>
-			<symbol> , </symbol>
-			<keyword> char </keyword>
-			<identifier> c </identifier>
-		</parameterList>
-		<symbol> ) </symbol>
-		<subroutineBody>
-			<symbol> { </symbol>
-			<varDec>
-				<keyword> var </keyword>
-				<keyword> int </keyword>
-				<identifier> wtf </identifier>
-				<symbol> ; </symbol>
-			</varDec>
-			<symbol> } </symbol>
-		</subroutineBody>
-	</subroutineDec>
-	<symbol> } </symbol>
+<keyword> class </keyword>
+<identifier> MyClass </identifier>
+<symbol> { </symbol>
+<classVarDec>
+<keyword> field </keyword>
+<keyword> int </keyword>
+<identifier> size </identifier>
+<symbol> ; </symbol>
+</classVarDec>
+<classVarDec>
+<keyword> static </keyword>
+<keyword> char </keyword>
+<identifier> ch </identifier>
+<symbol> ; </symbol>
+</classVarDec>
+<subroutineDec>
+<keyword> constructor </keyword>
+<identifier> MyClass </identifier>
+<identifier> new </identifier>
+<symbol> ( </symbol>
+<parameterList>
+<keyword> int </keyword>
+<identifier> j </identifier>
+<symbol> , </symbol>
+<keyword> char </keyword>
+<identifier> c </identifier>
+</parameterList>
+<symbol> ) </symbol>
+<subroutineBody>
+<symbol> { </symbol>
+<statements>
+<letStatement>
+<keyword> let </keyword>
+<identifier> size </identifier>
+<symbol> = </symbol>
+<expression>
+<term>
+<identifier> j </identifier>
+</term>
+<symbol> + </symbol>
+<term>
+<integerConstant> 13 </integerConstant>
+</term>
+</expression>
+<symbol> ; </symbol>
+</letStatement>
+</statements>
+<statements>
+<letStatement>
+<keyword> let </keyword>
+<identifier> ch </identifier>
+<symbol> = </symbol>
+<expression>
+<term>
+<identifier> c </identifier>
+</term>
+<symbol> - </symbol>
+<term>
+<integerConstant> 7 </integerConstant>
+</term>
+</expression>
+<symbol> ; </symbol>
+</letStatement>
+</statements>
+<symbol> } </symbol>
+</subroutineBody>
+</subroutineDec>
+<symbol> } </symbol>
 </class>

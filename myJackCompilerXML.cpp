@@ -172,6 +172,14 @@ string JackTokenizer::removeComments(string &file)
             }
             i += 2; //jump over '\n'
         }
+        else if (file[i] == '/' && file[i + 1] == '*' && file[i + 2] == '*')
+        {
+            while (!(file[i] == '/' && file[i - 1] == '*'))
+            {
+                i++;
+            }
+            i += 2; //jump over '\n'
+        }
         else
         {
             s += file[i];
@@ -257,11 +265,11 @@ void JackTokenizer::advance()
         //handle string constant
         if (c == '"')
         {
-            curValue += c;
+            c = getNextCharacter();
             do
             {
-                c = getNextCharacter();
                 curValue += c;
+                c = getNextCharacter();
             } while (c != '"');
             curToken.set(curValue, STRING_CONST);
         }
@@ -401,8 +409,8 @@ private:
     JackTokenizer tokenizer;
     ofstream ost;
 
-    void writeLine(string, int);
-    void writeXML(int);
+    void writeLine(string);
+    void writeXML();
 
 public:
     CompilationEngine(JackTokenizer &, string &);
@@ -456,61 +464,57 @@ public:
     void CompileExpressionList();
 };
 
-void CompilationEngine::writeLine(string s, int n)
+void CompilationEngine::writeLine(string s)
 {
-    for (int i = 0; i < n; i++)
-    {
-        s = '\t' + s;
-    }
     ost << s << endl;
 }
 
-void CompilationEngine::writeXML(int n)
+void CompilationEngine::writeXML()
 {
     switch (tokenizer.tokenType())
     {
     case KEYWORD:
     {
-        writeLine("<keyword> " + tokenizer.tokenVal() + " </keyword>", n);
+        writeLine("<keyword> " + tokenizer.tokenVal() + " </keyword>");
         break;
     }
     case IDENTIFIER:
     {
-        writeLine("<identifier> " + tokenizer.identifier() + " </identifier>", n);
+        writeLine("<identifier> " + tokenizer.identifier() + " </identifier>");
         break;
     }
     case SYMBOL:
     {
         if (tokenizer.symbol() == '"')
         {
-            writeLine("&quot;", n);
+            writeLine("<symbol> &quot; </symbol>");
         }
         else if (tokenizer.symbol() == '<')
         {
-            writeLine("&lt;", n);
+            writeLine("<symbol> &lt; </symbol>");
         }
         else if (tokenizer.symbol() == '>')
         {
-            writeLine("&gt;", n);
+            writeLine("<symbol> &gt; </symbol>");
         }
         else if (tokenizer.symbol() == '&')
         {
-            writeLine("&amp;", n);
+            writeLine("<symbol> &amp; </symbol>");
         }
         else
         {
-            writeLine("<symbol> " + tokenizer.tokenVal() + " </symbol>", n);
+            writeLine("<symbol> " + tokenizer.tokenVal() + " </symbol>");
         }
         break;
     }
     case INT_CONST:
     {
-        writeLine("<integerConstant> " + tokenizer.tokenVal() + " </integerConstant>", n);
+        writeLine("<integerConstant> " + tokenizer.tokenVal() + " </integerConstant>");
         break;
     }
     case STRING_CONST:
     {
-        writeLine("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>", n);
+        writeLine("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>");
         break;
     }
     }
@@ -526,7 +530,7 @@ CompilationEngine::CompilationEngine(JackTokenizer &jt, string &s)
 
 void CompilationEngine::CompileClass()
 {
-    writeLine("<class>", 0);
+    writeLine("<class>");
     while (tokenizer.hasMoreTokens())
     {
         tokenizer.advance();
@@ -543,43 +547,43 @@ void CompilationEngine::CompileClass()
             }
             else
             {
-                writeXML(1);
+                writeXML();
             }
         }
         else
         {
-            writeXML(1);
-            cout << tokenizer.tokenVal() << endl;
+            writeXML();
+            //cout << tokenizer.tokenVal() << endl;
         }
     }
-    writeLine("</class>", 0);
+    writeLine("</class>");
 }
 
 void CompilationEngine::CompileClassVarDec()
 {
-    writeLine("<classVarDec>", 1);
-    writeXML(2);
+    writeLine("<classVarDec>");
+    writeXML();
     while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ';'))
     {
         tokenizer.advance();
         if (tokenizer.tokenType() == KEYWORD || tokenizer.tokenType() == SYMBOL || tokenizer.tokenType() == IDENTIFIER)
         {
-            writeXML(2);
+            writeXML();
         }
     }
-    writeLine("</classVarDec>", 1);
+    writeLine("</classVarDec>");
 }
 
 void CompilationEngine::CompileSubroutineDec()
 {
-    writeLine("<subroutineDec>", 1);
-    writeXML(2);
+    writeLine("<subroutineDec>");
+    writeXML();
     while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '('))
     {
         tokenizer.advance();
         if (tokenizer.tokenType() == KEYWORD || tokenizer.tokenType() == SYMBOL || tokenizer.tokenType() == IDENTIFIER)
         {
-            writeXML(2);
+            writeXML();
         }
     }
 
@@ -594,105 +598,101 @@ void CompilationEngine::CompileSubroutineDec()
     {
         CompileSubroutineBody();
     }
-    writeLine("</subroutineDec>", 1);
+    writeLine("</subroutineDec>");
 }
 
 void CompilationEngine::CompileParameterList()
 {
-    writeLine("<parameterList>", 2);
+    writeLine("<parameterList>");
     while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ')'))
     {
         tokenizer.advance();
         if (tokenizer.tokenType() == KEYWORD || tokenizer.tokenType() == IDENTIFIER)
         {
-            writeXML(3);
+            writeXML();
         }
 
         if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() != ')')
         {
-            writeXML(3);
+            writeXML();
         }
     }
-    writeLine("</parameterList>", 2);
-    writeXML(2);
+    writeLine("</parameterList>");
+    writeXML();
 }
 
 void CompilationEngine::CompileSubroutineBody()
 {
-    writeLine("<subroutineBody>", 2);
-    writeXML(3);
-    while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '}'))
-    {
-        tokenizer.advance();
+    writeLine("<subroutineBody>");
+    writeXML(); // write '{'
 
-        if (tokenizer.tokenType() == KEYWORD)
-        {
-            if (tokenizer.keyWord() == VAR)
-            {
-                CompileVarDec();
-            }
-            else
-            {
-                CompileStatements();
-            }
-        }
+    tokenizer.advance();
+    while (tokenizer.tokenType() == KEYWORD && tokenizer.keyWord() == VAR)
+    {
+        CompileVarDec();
+        tokenizer.advance();
     }
-    writeXML(3);
-    writeLine("</subroutineBody>", 2);
+    CompileStatements();
+    writeXML();
+    writeLine("</subroutineBody>");
 }
 
 void CompilationEngine::CompileVarDec()
 {
-    writeLine("<varDec>", 3);
-    writeXML(4);
+    writeLine("<varDec>");
+    writeXML();
     while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ';'))
     {
         tokenizer.advance();
         if (tokenizer.tokenType() == KEYWORD || tokenizer.tokenType() == SYMBOL || tokenizer.tokenType() == IDENTIFIER)
         {
-            writeXML(4);
+            writeXML();
         }
     }
-    writeLine("</varDec>", 3);
+    writeLine("</varDec>");
 }
 
 void CompilationEngine::CompileStatements()
 {
-    writeLine("<statements>", 3);
+    writeLine("<statements>");
 
-    switch (tokenizer.keyWord())
+    while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '}'))
     {
-    case IF:
-        CompileIf();
-        break;
-    case WHILE:
-        CompiileWhile();
-        break;
-    case DO:
-        CompiileDo();
-        break;
-    case LET:
-        CompiileLet();
-        break;
-    case RETURN:
-        CompiileReturn();
-        break;
+        switch (tokenizer.keyWord())
+        {
+        case IF:
+            CompileIf();
+            break;
+        case WHILE:
+            CompiileWhile();
+            break;
+        case DO:
+            CompiileDo();
+            break;
+        case LET:
+            CompiileLet();
+            break;
+        case RETURN:
+            CompiileReturn();
+            break;
+        }
+        tokenizer.advance();
     }
 
-    writeLine("</statements>", 3);
+    writeLine("</statements>");
 }
 
 void CompilationEngine::CompiileLet()
 {
-    writeLine("<letStatement>", 4);
-    writeXML(5);
+    writeLine("<letStatement>");
+    writeXML();
     while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ';'))
     {
 
         tokenizer.advance();
         if (tokenizer.tokenType() == SYMBOL || tokenizer.tokenType() == IDENTIFIER)
         {
-            writeXML(5);
+            writeXML();
         }
 
         if (tokenizer.tokenType() == SYMBOL)
@@ -704,20 +704,20 @@ void CompilationEngine::CompiileLet()
         }
     }
 
-    writeLine("</letStatement>", 4);
+    writeLine("</letStatement>");
 }
 
 void CompilationEngine::CompileIf()
 {
-    writeLine("<ifStatement>", 4);
-    writeXML(5);
+    writeLine("<ifStatement>");
+    writeXML();
 
     while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '}'))
     {
         tokenizer.advance();
         if (tokenizer.tokenType() == SYMBOL)
         {
-            writeXML(5);
+            writeXML();
             if (tokenizer.symbol() == '(')
             {
                 CompiileExpression();
@@ -732,13 +732,13 @@ void CompilationEngine::CompileIf()
     tokenizer.advance();
     if (tokenizer.keyWord() == ELSE)
     {
-        writeXML(5);
+        writeXML();
         while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '}'))
         {
             tokenizer.advance();
             if (tokenizer.tokenType() == SYMBOL)
             {
-                writeXML(5);
+                writeXML();
                 if (tokenizer.symbol() == '{')
                 {
                     CompileStatements();
@@ -750,44 +750,50 @@ void CompilationEngine::CompileIf()
     {
         tokenizer.rollBack();
     }
-    writeLine("</ifStatement>", 4);
+    writeLine("</ifStatement>");
 }
 
 void CompilationEngine::CompiileWhile()
 {
-    writeLine("<whileStatement>", 4);
-    writeXML(5);
-    while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '}'))
-    {
-        tokenizer.advance();
-        if (tokenizer.tokenType() == SYMBOL)
-        {
-            writeXML(5);
-            if (tokenizer.symbol() == '(')
-            {
-                CompiileExpression();
-            }
+    writeLine("<whileStatement>");
+    writeXML(); // write "while"
 
-            if (tokenizer.symbol() == '{')
-            {
-                CompileStatements();
-            }
-        }
+    tokenizer.advance();
+    if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '(')
+    {
+
+        writeXML(); // write '('
+        CompiileExpression();
+
+        // write ')'
+        tokenizer.advance();
+        writeXML();
+
+        // write '{'
+        tokenizer.advance();
+        writeXML();
+
+        tokenizer.advance();
+
+        CompileStatements();
+
+        writeXML(); // write '}'
     }
-    writeLine("</whileStatement>", 4);
+
+    writeLine("</whileStatement>");
 }
 
 void CompilationEngine::CompiileDo()
 {
-    writeLine("<doStatement>", 4);
-    writeXML(5);
+    writeLine("<doStatement>");
+    writeXML();
     while (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ';'))
     {
         tokenizer.advance();
 
         if (tokenizer.tokenType() == IDENTIFIER || tokenizer.tokenType() == SYMBOL || tokenizer.tokenType() == KEYWORD)
         {
-            writeXML(5);
+            writeXML();
         }
 
         if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '(')
@@ -796,13 +802,13 @@ void CompilationEngine::CompiileDo()
             CompileExpressionList();
         }
     }
-    writeLine("</doStatement>", 4);
+    writeLine("</doStatement>");
 }
 
 void CompilationEngine::CompiileReturn()
 {
-    writeLine("<returnStatement>", 4);
-    writeXML(5);
+    writeLine("<returnStatement>");
+    writeXML();
 
     tokenizer.advance();
     if (!(tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ';'))
@@ -810,14 +816,14 @@ void CompilationEngine::CompiileReturn()
         tokenizer.rollBack();
         CompiileExpression();
     }
-    writeXML(5);
+    writeXML();
 
-    writeLine("</returnStatement>", 4);
+    writeLine("</returnStatement>");
 }
 
 void CompilationEngine::CompiileExpression()
 {
-    writeLine("<expression>", 5);
+    writeLine("<expression>");
 
     do
     {
@@ -827,48 +833,56 @@ void CompilationEngine::CompiileExpression()
 
         if (tokenizer.tokenType() == SYMBOL && tokenizer.isOperator())
         {
-            writeXML(6);
+            writeXML();
         }
 
     } while (tokenizer.tokenType() == SYMBOL && tokenizer.isOperator());
 
-    writeLine("</expression>", 5);
+    tokenizer.rollBack();
+    writeLine("</expression>");
 }
 
 void CompilationEngine::CompileTerm()
 {
-    writeLine("<term>", 6);
-    writeXML(7);
+    writeLine("<term>");
+    writeXML();
 
+    //term is an identifier
     if (tokenizer.tokenType() == IDENTIFIER)
     {
         tokenizer.advance();
 
+        //next token is a symbol
         if (tokenizer.tokenType() == SYMBOL)
         {
             switch (tokenizer.symbol())
             {
+            //varName.method()
             case '.':
             {
-                writeXML(7);
+                writeXML(); // write "."
                 tokenizer.advance();
-                writeXML(7);
+                writeXML(); // write "method"
                 tokenizer.advance();
-                writeXML(7);
+                writeXML(); //write "("
                 CompileExpressionList();
+                tokenizer.advance();
+                writeXML();
                 break;
             }
+            //varName()
             case '(':
             {
-                writeXML(7);
+                writeXML();
                 CompileExpressionList();
                 break;
             }
+            //varName[]
             case '[':
             {
-                writeXML(7);
+                writeXML();
                 CompiileExpression();
-                writeXML(7);
+                writeXML();
                 break;
             }
             default:
@@ -890,42 +904,35 @@ void CompilationEngine::CompileTerm()
     else if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '(')
     {
         CompiileExpression();
-        writeXML(7);
+        writeXML();
     }
 
-    writeLine("</term>", 6);
+    writeLine("</term>");
 }
 
 void CompilationEngine::CompileExpressionList()
 {
-    writeLine("<expressionList>", 7);
+    writeLine("<expressionList>");
 
     do
     {
         tokenizer.advance();
-        if (tokenizer.tokenType() != SYMBOL || tokenizer.symbol() == '(')
+
+        if (tokenizer.tokenType() != SYMBOL)
         {
             tokenizer.rollBack();
             CompiileExpression();
-            if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ',')
-            {
-                writeXML(8);
-            }
         }
         else if (tokenizer.tokenType() == SYMBOL)
         {
-            if (tokenizer.symbol() != ')')
+            if (tokenizer.symbol() == ',')
             {
-                writeXML(8);
+                writeXML();
             }
         }
-    } while (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ',');
+    } while (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == ','); // while token is ',', contine
 
-    writeLine("</expressionList>", 7);
-    if (tokenizer.tokenType() == SYMBOL)
-    {
-        writeXML(7);
-    }
+    writeLine("</expressionList>");
 }
 
 class JackAnalyzer
@@ -995,7 +1002,7 @@ int main()
 {
     vector<string> files;
 
-    string inputPath = "C:/Users/skyri/projects/JackCompiler";
+    string inputPath = "C:/Users/skyri/projects/JackCompiler/Main.jack";
 
     getAllFiles(inputPath, files);
 
