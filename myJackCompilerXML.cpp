@@ -915,6 +915,7 @@ void CompilationEngine::CompileTerm()
     else if (tokenizer.tokenType() == SYMBOL && tokenizer.symbol() == '(')
     {
         CompiileExpression();
+        tokenizer.advance();
         writeXML();
     }
 
